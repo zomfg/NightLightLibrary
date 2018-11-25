@@ -1,0 +1,47 @@
+namespace NightLightLibrary;
+
+enum Status
+{
+	Running = 0
+}
+
+enum TriggerType
+{
+	Manual = 1,
+	Automatic = 0
+}
+
+struct _Time
+{
+	[Min("0")]
+	[Max("23")]
+    0: int8		hours   = 0;
+	[Min("0")]
+	[Max("59")]
+    1: int8		minutes = 0;
+}
+
+// HKEY_CURRENT_USER
+[RegistrySubkey("Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\CloudStore\\\\Store\\\\Cache\\\\DefaultAccount\\\\$$windows.data.bluelightreduction.bluelightreductionstate\\\\Current")]
+struct _State
+{
+	0:  Status		status		= nothing;  // int32
+	10: TriggerType trigger     = Automatic;  //int32
+	20: uint64		changedOn;				// FILETIME
+	30: bool		usable		= true;
+}
+
+// HKEY_CURRENT_USER
+[RegistrySubkey("Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\CloudStore\\\\Store\\\\Cache\\\\DefaultAccount\\\\$$windows.data.bluelightreduction.settings\\\\Current")]
+struct _Settings<T>
+{
+	0:				bool		enabled				= false;
+	10:				bool		onSunSchedule		= true;
+	20:				T			manualScheduleStartTime;
+	30:				T			manualScheduleEndTime;
+	[Min("1200")]
+	[Max("6500")]
+	40: required	int16		colorTemperature	= 6500;
+	50:				T			sunScheduleStartTime;
+	60:				T			sunScheduleEndTime;
+}
