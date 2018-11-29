@@ -34,21 +34,21 @@ namespace NightLightLibrary
 			void setWatching(const bool watching) noexcept;
 			void watchLoop(const std::vector<LPCSTR>& subKeys, const std::function<void()>& callback);
 			const bool watch(std::vector<HANDLE>& events, std::vector<HKEY>& keys);
-		};
+		}; // class Watcher
 
 		struct Header
 		{
 			uint32_t	h1{ 0 };
 			FILETIME	filetime{ 0, 0 };
 			uint32_t	h2{ 0 };
-		};
+		}; // struct Header
 
 		// bond data
 		struct Metadata
 		{
 			int16_t     protocol{ ::bond::ProtocolType::COMPACT_PROTOCOL };
 			int16_t     version{ ::bond::v1 };
-		};
+		}; // struct Metadata
 
 		template<typename T> struct Bond
 		{
@@ -57,13 +57,13 @@ namespace NightLightLibrary
 			virtual T& _reset() = 0;
 		protected:
 			~Bond() {};
-		};
+		}; // struct Bond
 
 		namespace Name
 		{
 			constexpr LPCSTR SubkeyAttribute = "RegistrySubkey";
 			constexpr LPCSTR Value = "Data";
-		}
+		} // namespace Name
 
 		template<typename T> struct Record
 		{
@@ -87,7 +87,7 @@ namespace NightLightLibrary
 			virtual T& save() = 0;
 		protected:
 			~Record() {};
-		};
+		}; // struct Record
 
 		inline const DWORD getValueSize(const LPCSTR& regSubkey, const LPCSTR& regValueName) noexcept
 		{
@@ -105,14 +105,14 @@ namespace NightLightLibrary
 			if (s == ERROR_SUCCESS)
 				return dataSize;
 			return 0;
-		}
+		} // getValueSize()
 
 		template<typename T> inline void unmarshal(const ::bond::InputBuffer& buffer, T& obj)
 		{
 			// Unmarshal reads protocol version information from input stream and uses
 			// appropriate protocol reader to deserialize data.
 			bond::Unmarshal(buffer, obj);
-		}
+		} // unmarshal()
 
 		template<typename T> const bool load(T& obj)
 		{
@@ -145,7 +145,7 @@ namespace NightLightLibrary
 
 			unmarshal(input, obj);
 			return true;
-		}
+		} // load()
 
 		template <typename T> const bool save(T& obj)
 		{
@@ -211,6 +211,6 @@ namespace NightLightLibrary
 #endif // _DEBUG
 
 			return (s == ERROR_SUCCESS);
-		}
-	}
-};
+		} // save()
+	} // namespace Registry
+}; // namespace NightLightLibrary

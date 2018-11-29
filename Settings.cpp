@@ -3,6 +3,9 @@
 
 namespace NightLightLibrary
 {
+
+#pragma region Settings
+
 	const LPCSTR Settings::getRegistryKey() {
 		static const std::string key = Schema::metadata.attributes.find(Registry::Name::SubkeyAttribute)->second;
 		return key.c_str();
@@ -96,9 +99,10 @@ namespace NightLightLibrary
 		_dirty = true;
 		return *this;
 	}
+#pragma endregion Settings
 
 
-
+#pragma region Time
 
 	Time& Time::setHours(const int8_t h)
 	{
@@ -158,4 +162,7 @@ namespace NightLightLibrary
 	{
 		return isWithinRange(start, end, *this);
 	}
-}
+
+#pragma endregion Time
+
+} // namespace NightLightLibrary

@@ -2,7 +2,8 @@
 #include "nightlight_schema_types.h"
 #include "Registry.h"
 
-namespace NightLightLibrary {
+namespace NightLightLibrary
+{
 	struct State : public _State, public Registry::Record<State>, public Registry::Bond<State>
 	{
 		static const LPCSTR getRegistryKey();
@@ -19,5 +20,5 @@ namespace NightLightLibrary {
 		State& save(/*const bool starsAligned*/) override;
 
 		State& _reset() override;
-	};
-}
+	}; // struct State
+} // namespace NightLightLibrary

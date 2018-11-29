@@ -2,7 +2,8 @@
 #include "nightlight_schema_types.h"
 #include "Registry.h"
 
-namespace NightLightLibrary {
+namespace NightLightLibrary
+{
 	struct Time : public _Time, public Registry::Bond<Time>
 	{
 		static Time now();
@@ -18,7 +19,7 @@ namespace NightLightLibrary {
 		const uint16_t toMinutes() const noexcept;
 
 		Time& _reset() noexcept override;
-	};
+	}; // struct Time
 
 	struct Settings : public _Settings<Time>, public Registry::Record<Settings>, public Registry::Bond<Settings>
 	{
@@ -43,5 +44,5 @@ namespace NightLightLibrary {
 		Settings& save() override;
 
 		Settings& _reset() noexcept override;
-	};
-};
+	}; // struct Settings
+}; // namespace NightLightLibrary

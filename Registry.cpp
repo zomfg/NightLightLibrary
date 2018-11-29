@@ -14,6 +14,9 @@ namespace NightLightLibrary
 			const char* message;
 		};
 
+
+#pragma region Watcher
+
 		Watcher::~Watcher()
 		{
 			stop();
@@ -132,5 +135,8 @@ namespace NightLightLibrary
 			if (_lastBreathEvent != NULL)
 				::SetEvent(_lastBreathEvent);
 		}
-	}
-}
+
+#pragma endregion Watcher
+
+	} // namespace Registry
+} // namespace NightLightLibrary

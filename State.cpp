@@ -3,6 +3,9 @@
 
 namespace NightLightLibrary
 {
+
+#pragma region State
+
 	const LPCSTR State::getRegistryKey() { 
 		static const std::string key = Schema::metadata.attributes.find(Registry::Name::SubkeyAttribute)->second;
 		return key.c_str();
@@ -69,4 +72,7 @@ namespace NightLightLibrary
 		Record::save(*this);
 		return *this;
 	}
-}
+
+#pragma endregion State
+
+} // namespace NightLightLibrary

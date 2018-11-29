@@ -9,6 +9,8 @@ namespace NightLightLibrary
 		Short = 2'000  // for manual switching
 	};
 
+#pragma region NightLight
+
 	NightLight::NightLight()
 	{
 		backup();
@@ -224,4 +226,7 @@ namespace NightLightLibrary
 		_watcher.reset();
 		return *this;
 	}
-}
+
+#pragma endregion NightLight
+
+} // namespace NightLightLibrary

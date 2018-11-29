@@ -2,9 +2,10 @@
 #include "State.h"
 #include "Settings.h"
 
-namespace NightLightLibrary {
-
-	class NightLight {
+namespace NightLightLibrary
+{
+	class NightLight
+	{
 	public:
 		/*
 		static NightLight& instance() {
@@ -65,5 +66,5 @@ namespace NightLightLibrary {
 		ULONGLONG	_lastStatusChangeTime{ 0 };
 
 		std::unique_ptr<Registry::Watcher> _watcher;
-	};
-}
+	}; // class NightLight
+} // namespace NightLightLibrary
