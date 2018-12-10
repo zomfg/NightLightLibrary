@@ -10,6 +10,12 @@ FOR /F "tokens=*" %%g IN ('git remote get-url origin') do (SET VAR=%%g)
 echo // %VAR% >> NightLightLibrary.h
 echo // ----------------------------------------------------------------------------------------- >> NightLightLibrary.h
 echo. >> NightLightLibrary.h
+echo #ifndef INCLUDE_BOND >> NightLightLibrary.h
+echo. >> NightLightLibrary.h
+(type NightLightWrapper.h) >> NightLightLibrary.h
+echo. >> NightLightLibrary.h
+echo #else // INCLUDE_BOND >> NightLightLibrary.h
+echo. >> NightLightLibrary.h
 (type *schema_types.h) >> NightLightLibrary.h
 echo. >> NightLightLibrary.h
 
@@ -32,6 +38,8 @@ echo. >> NightLightLibrary.h
 (type NightLight.h | find /V "#pragma once" | find /V "#include") >> NightLightLibrary.h
 (echo #pragma endregion NightLight.h) >>  NightLightLibrary.h
 echo. >> NightLightLibrary.h
+
+echo #endif // INCLUDE_BOND >> NightLightLibrary.h
 
 REM copy to $(OutDir)
 copy NightLightLibrary.h %2
