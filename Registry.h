@@ -137,55 +137,74 @@ namespace NightLightLibrary
 			if (s != ERROR_SUCCESS)
 				return false;
 
-			::bond::InputBuffer input = ::bond::InputBuffer(&data[0], dataSize);
-			// copy header for saving back to registry
-			input.Read(&(obj._header), sizeof(obj._header));
-			// copy metadata "manually" because InputBuffer cannot rewind in c++
-			memcpy(&(obj._metadata), &data[sizeof(obj._header)], sizeof(obj._metadata));
+			try
+			{
+				::bond::InputBuffer input = ::bond::InputBuffer(&data[0], dataSize);
+				// copy header for saving back to registry
+				input.Read(&(obj._header), sizeof(obj._header));
+				// copy metadata "manually" because InputBuffer cannot rewind in c++
+				memcpy(&(obj._metadata), &data[sizeof(obj._header)], sizeof(obj._metadata));
 
-			unmarshal(input, obj);
+				unmarshal(input, obj);
+			}
+			catch (const std::exception& e)
+			{
+#ifdef _DEBUG
+				std::cout << "bond read fail: " << e.what() << std::endl;
+#endif
+				return false;
+			}
 			return true;
 		} // load()
 
 		template <typename T> const bool save(T& obj)
 		{
 			static_assert(std::is_base_of<Record<T>, T>::value, "must be a Registry::Record");
-			//if (obj._dirty == false)
-				//return true;
 
 			::bond::OutputBuffer output;
 
 			// restore the original header with updated time
 			GetSystemTimeAsFileTime(&(obj._header.filetime));
-			output.Write(obj._header);
 
-			switch (obj._metadata.protocol)
+			try
 			{
+				output.Write(obj._header);
+
+				switch (obj._metadata.protocol)
+				{
 #ifdef BOND_COMPACT_BINARY_PROTOCOL
-			case ::bond::ProtocolType::COMPACT_PROTOCOL:
-			{
-				::bond::CompactBinaryWriter<::bond::OutputBuffer> writer(output, obj._metadata.version);
-				::bond::Marshal(obj, writer);
-			}
-			break;
+				case ::bond::ProtocolType::COMPACT_PROTOCOL:
+				{
+					::bond::CompactBinaryWriter<::bond::OutputBuffer> writer(output, obj._metadata.version);
+					::bond::Marshal(obj, writer);
+				}
+				break;
 #endif
 #ifdef BOND_FAST_BINARY_PROTOCOL
-			case ::bond::ProtocolType::FAST_PROTOCOL:
-			{
-				::bond::FastBinaryWriter<::bond::OutputBuffer> writer(output);
-				::bond::Marshal(obj, writer);
-			}
-			break;
+				case ::bond::ProtocolType::FAST_PROTOCOL:
+				{
+					::bond::FastBinaryWriter<::bond::OutputBuffer> writer(output);
+					::bond::Marshal(obj, writer);
+				}
+				break;
 #endif
 #ifdef BOND_SIMPLE_BINARY_PROTOCOL
-			case ::bond::ProtocolType::SIMPLE_PROTOCOL:
-			{
-				::bond::SimpleBinaryWriter<::bond::OutputBuffer> writer(output, obj._metadata.version);
-				::bond::Marshal(obj, writer);
-			}
-			break;
+				case ::bond::ProtocolType::SIMPLE_PROTOCOL:
+				{
+					::bond::SimpleBinaryWriter<::bond::OutputBuffer> writer(output, obj._metadata.version);
+					::bond::Marshal(obj, writer);
+				}
+				break;
 #endif
-			default:
+				default:
+					return false;
+				}
+			}
+			catch (const std::exception& e)
+			{
+#ifdef _DEBUG
+				std::cout << "bond write fail: " << e.what() << std::endl;
+#endif
 				return false;
 			}
 			
