@@ -77,6 +77,11 @@ namespace NightLightLibrary
 		return *this;
 	}
 
+	const bool Settings::isAdjustingColorTemperature() const noexcept
+	{
+		return adjustingColorTemperature;
+	}
+
 	Settings& Settings::save()
 	{
 		Record::save(*this);
@@ -96,6 +101,9 @@ namespace NightLightLibrary
 
 		sunScheduleStartTime._reset();
 		sunScheduleEndTime._reset();
+
+		adjustingColorTemperature = (Schema::var::adjustingColorTemperature::metadata.default_value.uint_value == 1);
+
 		_dirty = true;
 		return *this;
 	}

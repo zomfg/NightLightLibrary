@@ -35,13 +35,14 @@ struct _State
 [RegistrySubkey("Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\CloudStore\\\\Store\\\\Cache\\\\DefaultAccount\\\\$$windows.data.bluelightreduction.settings\\\\Current")]
 struct _Settings<T>
 {
-	0:				bool		enabled				= false;
-	10:				bool		onSunSchedule		= true;
+	0:				bool		enabled						= false;
+	10:				bool		onSunSchedule				= true;
 	20:				T			manualScheduleStartTime;
 	30:				T			manualScheduleEndTime;
 	[Min("1200")]
 	[Max("6500")]
-	40: required	int16		colorTemperature	= 6500;
+	40: required	int16		colorTemperature			= 6500;
 	50:				T			sunScheduleStartTime;
 	60:				T			sunScheduleEndTime;
+	70:				bool		adjustingColorTemperature	= false;
 }

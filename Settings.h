@@ -39,6 +39,7 @@ namespace NightLightLibrary
 		const int16_t getDayColorTemperature() const noexcept;
 		const int16_t getNightColorTemperature() const noexcept;
 		Settings& setNightColorTemperature(const int16_t ctemp);
+		const bool isAdjustingColorTemperature() const noexcept;
 
 		//static const bool load(Settings&);
 		Settings& save() override;
