@@ -1,160 +1,92 @@
 #include "stdafx.h"
-#include "NightLight.h"
 #include "NightLightWrapper.h"
+#include "NightLight.h"
 
 namespace NightLightLibrary
 {
+#define NL_NONCHAINABLE_WRAPPER(_return_, _name_, _decoration_)\
+_return_ NightLightWrapper::_name_() _decoration_ {\
+	return _nl->_name_(); \
+}
 
-	NightLightWrapper::NightLightWrapper() : _nl(std::make_unique<NightLight>())
-	{
-	}
+#define NL_CHAINABLE_WRAPPER(_name_, _arg_type_,_arg_, _decoration_)\
+NightLightWrapper& NightLightWrapper::_name_(_arg_type_ _arg_) _decoration_ {\
+	_nl->_name_(_arg_); \
+	return *this; \
+}
 
-	NightLightWrapper::~NightLightWrapper()
-	{
-	}
+#define NL_SET_TIME_WRAPPER(_name_)\
+NightLightWrapper& NightLightWrapper::set##_name_##Time(const int8_t hours, const int8_t minutes){\
+	Time t; \
+	t.setHours(hours); \
+	t.setMinutes(minutes); \
+	_nl->set##_name_##Time(t); \
+	return *this; \
+}
+
+#define NL_GET_TIME_WRAPPER(_name_)\
+NightLightWrapper& NightLightWrapper::get##_name_##Time(int8_t& hours, int8_t& minutes) noexcept {\
+	Time t = _nl->get##_name_##Time(); \
+	hours = t.hours; \
+	minutes = t.minutes; \
+	return *this; \
+}
+
+	NightLightWrapper::NightLightWrapper() : _nl(std::make_unique<NightLight>()) {}
+	NightLightWrapper::~NightLightWrapper() = default;
 
 	const bool NightLightWrapper::isSupported(const bool checkEnabled)
 	{
 		return NightLight::isSupported(checkEnabled);
 	}
 
-	const bool NightLightWrapper::didStatusChange() const noexcept
-	{
-		return _nl->didStatusChange();
-	}
+	NL_NONCHAINABLE_WRAPPER(const bool, didStatusChange, const noexcept);
 
-	NightLightWrapper& NightLightWrapper::disable() noexcept
-	{
-		_nl->disable();
-		return *this;
-	}
+	NL_CHAINABLE_WRAPPER(disable,,, noexcept);
+	NL_CHAINABLE_WRAPPER(enable,,, noexcept);
 
-	NightLightWrapper& NightLightWrapper::enable() noexcept
-	{
-		_nl->enable();
-		return *this;
-	}
+	NL_NONCHAINABLE_WRAPPER(const bool, isEnabled, const noexcept);
 
-	const bool NightLightWrapper::isEnabled() const noexcept
-	{
-		return _nl->isEnabled();
-	}
+	NL_CHAINABLE_WRAPPER(pause,,, noexcept);
+	NL_CHAINABLE_WRAPPER(resume,,, );
 
-	NightLightWrapper& NightLightWrapper::pause() noexcept
-	{
-		_nl->pause();
-		return *this;
-	}
+	NL_NONCHAINABLE_WRAPPER(const bool, isRunning, const);
+	NL_NONCHAINABLE_WRAPPER(const bool, isUsable, const noexcept);
 
-	NightLightWrapper& NightLightWrapper::resume()
-	{
-		_nl->resume();
-		return *this;
-	}
+	NL_CHAINABLE_WRAPPER(disableSystemUI,,, noexcept);
+	NL_CHAINABLE_WRAPPER(useSunSchedule,,, noexcept);
+	NL_CHAINABLE_WRAPPER(useManualSchedule,,, noexcept);
 
-	const bool NightLightWrapper::isRunning() const
-	{
-		return _nl->isRunning();
-	}
+	NL_NONCHAINABLE_WRAPPER(const bool, isOnSunSchedule, const noexcept);
 
-	const bool NightLightWrapper::wasManuallyTriggered() const noexcept
-	{
-		return _nl->wasManuallyTriggered();
-	}
+	NL_SET_TIME_WRAPPER(Start);
+	NL_SET_TIME_WRAPPER(End);
 
-	const bool NightLightWrapper::isUsable() const noexcept
-	{
-		return _nl->isUsable();
-	}
+	NL_GET_TIME_WRAPPER(Start);
+	NL_GET_TIME_WRAPPER(End);
 
-	NightLightWrapper& NightLightWrapper::disableSystemUI() noexcept
-	{
-		_nl->disableSystemUI();
-		return *this;
-	}
+	NL_NONCHAINABLE_WRAPPER(const bool, isWithinTimeRange, const);
+	NL_NONCHAINABLE_WRAPPER(const int16_t, getSmoothenedColorTemperature, const);
+	NL_NONCHAINABLE_WRAPPER(const int16_t, getColorTemperature, const);
+	NL_NONCHAINABLE_WRAPPER(const int16_t, getDayColorTemperature, const noexcept);
+	NL_NONCHAINABLE_WRAPPER(const int16_t, getNightColorTemperature, const noexcept);
+	NL_NONCHAINABLE_WRAPPER(const bool, isAdjustingColorTemperature, const noexcept);
+	NL_NONCHAINABLE_WRAPPER(const bool, wasAdjustingColorTemperature, const noexcept);
 
-	NightLightWrapper& NightLightWrapper::useSunSchedule() noexcept
-	{
-		_nl->useSunSchedule();
-		return *this;
-	}
+	NL_CHAINABLE_WRAPPER(setNightColorTemperature, const int16_t, ct, );
 
-	NightLightWrapper& NightLightWrapper::useManualSchedule() noexcept
-	{
-		_nl->useManualSchedule();
-		return *this;
-	}
+	NL_CHAINABLE_WRAPPER(save, const bool, dontTrigger, );
+	NL_CHAINABLE_WRAPPER(load, const bool, ignoreStatusChange, );
 
-	const bool NightLightWrapper::isOnSunSchedule() const noexcept
-	{
-		return _nl->isOnSunSchedule();
-	}
-
-	const bool NightLightWrapper::isWithinTimeRange() const
-	{
-		return _nl->isWithinTimeRange();
-	}
-
-	const int16_t NightLightWrapper::getSmoothenedColorTemperature() const
-	{
-		return _nl->getSmoothenedColorTemperature();
-	}
-
-	const int16_t NightLightWrapper::getColorTemperature() const
-	{
-		return _nl->getColorTemperature();
-	}
-
-	const int16_t NightLightWrapper::getDayColorTemperature() const noexcept
-	{
-		return _nl->getDayColorTemperature();
-	}
-
-	const int16_t NightLightWrapper::getNightColorTemperature() const noexcept
-	{
-		return _nl->getNightColorTemperature();
-	}
-
-	NightLightWrapper& NightLightWrapper::setNightColorTemperature(const int16_t ct)
-	{
-		_nl->setNightColorTemperature(ct);
-		return *this;
-	}
-
-	NightLightWrapper& NightLightWrapper::save()
-	{
-		_nl->save();
-		return *this;
-	}
-
-	NightLightWrapper& NightLightWrapper::load(const bool ignoreStatusChange)
-	{
-		_nl->load(ignoreStatusChange);
-		return *this;
-	}
-
-	NightLightWrapper& NightLightWrapper::backup()
-	{
-		_nl->backup();
-		return *this;
-	}
-
-	NightLightWrapper& NightLightWrapper::restore()
-	{
-		_nl->restore();
-		return *this;
-	}
+	NL_CHAINABLE_WRAPPER(backup,,, );
+	NL_CHAINABLE_WRAPPER(restore,,, );
 
 	NightLightWrapper& NightLightWrapper::startWatching(const std::function<void(NightLightWrapper&)>& callback)
 	{
 		_nl->startWatching([&, callback](NightLight&) { callback(*this); });
 		return *this;
 	}
-
-	NightLightWrapper& NightLightWrapper::stopWatching() noexcept
-	{
-		_nl->stopWatching();
-		return *this;
-	}
-
+	NL_CHAINABLE_WRAPPER(stopWatching,,, noexcept);
+	NL_CHAINABLE_WRAPPER(pauseWatching,,, noexcept);
+	NL_CHAINABLE_WRAPPER(resumeWatching,,, noexcept);
 }
