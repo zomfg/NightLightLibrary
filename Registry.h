@@ -24,16 +24,21 @@ namespace NightLightLibrary
 			Watcher(const Watcher&) = delete;
 			Watcher& operator=(const Watcher&) = delete;
 			const bool isWatching() const noexcept;
-			void start(const std::vector<LPCSTR>& subKeys, const std::function<void()>& callback);
+			void start(const std::vector<LPCSTR>& subKeys, const std::function<void(LPCSTR)>& callback);
 			void stop() noexcept;
+			const bool isPaused() const noexcept;
+			void pause() noexcept;
+			void resume() noexcept;
 		private:
 			std::atomic<HANDLE> _cancelEvent{ NULL };
 			std::atomic<HANDLE> _lastBreathEvent{ NULL };
 			std::atomic<bool>   _watching{ false };
+			std::atomic<bool>   _paused{ false };
 
 			void setWatching(const bool watching) noexcept;
-			void watchLoop(const std::vector<LPCSTR>& subKeys, const std::function<void()>& callback);
-			const bool watch(std::vector<HANDLE>& events, std::vector<HKEY>& keys);
+			void setPaused(const bool paused) noexcept;
+			void watchLoop(const std::vector<LPCSTR>& subKeys, const std::function<void(LPCSTR)>& callback);
+			const int watch(std::vector<HANDLE>& events, std::vector<HKEY>& keys);
 		}; // class Watcher
 
 		struct Header
@@ -74,7 +79,7 @@ namespace NightLightLibrary
 			bool            _dirty{ false };
 
 			static const bool load(T& obj) {
-				if (!Registry::load(obj._reset()))
+				if (!Registry::load(obj))
 					return false;
 				obj._dirty = false;
 				return true;
@@ -85,9 +90,42 @@ namespace NightLightLibrary
 				return !obj._dirty;
 			}
 			virtual T& save() = 0;
+
+			void startWatching(const std::function<void()>& callback = []() noexcept {})
+			{
+				if (_watcher)
+					_watcher->stop();
+				else
+					_watcher = std::make_unique<Watcher>();
+
+				const std::vector<LPCSTR> subKeys{ T::getRegistryKey() };
+				const std::function<void(LPCSTR)> wrapper = [&, callback](LPCSTR) {
+					callback();
+				};
+				_watcher->start(subKeys, wrapper);
+			}
+
+			void stopWatching() noexcept	{ _watcher.reset(); }
+			void pauseWatching() noexcept	{ if (_watcher) _watcher->pause(); }
+			void resumeWatching() noexcept	{ if (_watcher) _watcher->resume(); }
+
 		protected:
 			~Record() {};
+		private:
+			std::unique_ptr<Watcher> _watcher;
 		}; // struct Record
+
+
+#ifdef _DEBUG
+		inline void printData(const uint8_t* data, uint32_t size)
+		{
+			const uint8_t* const end = data + size;
+			std::cout << "REG DATA:" << std::hex;
+			while (data < end)
+				std::cout << " " << std::setfill('0') << std::setw(2) << (int)*(data++);
+			std::cout << std::dec << " END" << std::endl;
+		}
+#endif
 
 		inline const DWORD getValueSize(const LPCSTR& regSubkey, const LPCSTR& regValueName) noexcept
 		{
@@ -136,22 +174,26 @@ namespace NightLightLibrary
 			);
 			if (s != ERROR_SUCCESS)
 				return false;
-
+#ifdef _DEBUG
+			printData((uint8_t*)(data.data()), dataSize);
+#endif
 			try
 			{
 				::bond::InputBuffer input = ::bond::InputBuffer(&data[0], dataSize);
 				// copy header for saving back to registry
 				input.Read(&(obj._header), sizeof(obj._header));
+				
 				// copy metadata "manually" because InputBuffer cannot rewind in c++
 				memcpy(&(obj._metadata), &data[sizeof(obj._header)], sizeof(obj._metadata));
-
-				unmarshal(input, obj);
+				unmarshal(input, obj._reset());
 			}
 			catch (const std::exception& e)
 			{
 #ifdef _DEBUG
 				std::cout << "bond read fail: " << e.what() << std::endl;
-#endif
+#else // _DEBUG
+				UNREFERENCED_PARAMETER(e);
+#endif // _DEBUG
 				return false;
 			}
 			return true;
@@ -204,7 +246,9 @@ namespace NightLightLibrary
 			{
 #ifdef _DEBUG
 				std::cout << "bond write fail: " << e.what() << std::endl;
-#endif
+#else // _DEBUG
+				UNREFERENCED_PARAMETER(e);
+#endif // _DEBUG
 				return false;
 			}
 			
@@ -218,15 +262,7 @@ namespace NightLightLibrary
 			);
 
 #ifdef _DEBUG
-			{
-				//LSTATUS s = ERROR_SUCCESS;
-				const uint8_t* ptr = (uint8_t*)(output.GetBuffer().data());
-				const uint8_t* const end = ptr + output.GetBuffer().size();
-				std::cout << "REG DATA:" << std::hex;
-				while (ptr < end)
-					std::cout << " " << std::setfill('0') << std::setw(2) << (int)*(ptr++);
-				std::cout << std::dec << " END" << std::endl;
-			}
+			printData((uint8_t*)(output.GetBuffer().data()), output.GetBuffer().size());
 #endif // _DEBUG
 
 			return (s == ERROR_SUCCESS);
