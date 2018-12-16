@@ -6,8 +6,11 @@ namespace NightLightLibrary
 	enum class SmootheningDuration : ULONGLONG // in ms
 	{
 		Long = 120'000, // for auto switching on/off
-		Short = 2'000  // for manual switching
+		Short = 2'000,  // for manual switching
+		None = 0 // for while moving ct slider
 	};
+
+	
 
 #pragma region NightLight
 
@@ -29,7 +32,7 @@ namespace NightLightLibrary
 		if (!supported)
 			return false;
 		if (checkEnabled)
-			return (settings.isEnabled() || state.isRunning());
+			return (settings.isEnabled() || state.isRunning() || settings.isAdjustingColorTemperature()/*unsure*/);
 		return true;
 	}
 
@@ -53,11 +56,6 @@ namespace NightLightLibrary
 	const bool NightLight::isRunning() const
 	{
 		return _state.isRunning();
-	}
-
-	const bool NightLight::wasManuallyTriggered() const noexcept
-	{
-		return _state.wasManuallyTriggered();
 	}
 
 	const bool NightLight::isUsable() const noexcept
@@ -85,6 +83,9 @@ namespace NightLightLibrary
 	NightLight& NightLight::enable() noexcept
 	{
 		_settings.setEnabled(true);
+		// replicating behavior: not scheduled => scheduled + within range = running
+		//if (isWithinTimeRange())
+			//resume();
 		return *this;
 	}
 
@@ -136,19 +137,7 @@ namespace NightLightLibrary
 
 	const int16_t NightLight::getColorTemperature() const
 	{
-		return isRunning() ? getNightColorTemperature() : getDayColorTemperature();
-	}
-
-	const int16_t NightLight::getSmoothenedColorTemperature() const
-	{
-		const ULONGLONG duration = static_cast<ULONGLONG>(wasManuallyTriggered() ? SmootheningDuration::Short : SmootheningDuration::Long);
-		const ULONGLONG timeSinceStatusChange = ::GetTickCount64() - _lastStatusChangeTime; // ms
-		if (timeSinceStatusChange >= duration)
-			return getColorTemperature();
-
-		const int16_t from = !isRunning() ? getNightColorTemperature() : getDayColorTemperature();
-		const int16_t to = isRunning() ? getNightColorTemperature() : getDayColorTemperature();
-		return static_cast<int16_t>(from + (to - from) * (timeSinceStatusChange / static_cast<double>(duration)));
+		return isRunning() || isAdjustingColorTemperature() ? getNightColorTemperature() : getDayColorTemperature();
 	}
 
 	const int16_t NightLight::getDayColorTemperature() const noexcept
@@ -167,23 +156,82 @@ namespace NightLightLibrary
 		return *this;
 	}
 
-	NightLight& NightLight::save()
+	const ULONGLONG NightLight::getSmootheningDuration() const noexcept
 	{
+		if (_statusChanged && (_settingsChanged || _state.wasManuallyTriggered()))
+			return static_cast<ULONGLONG>(SmootheningDuration::Short);
+		if (_statusChanged && _state.wasManuallyTriggered() == false)
+			return static_cast<ULONGLONG>(SmootheningDuration::Long);
+		return static_cast<ULONGLONG>(SmootheningDuration::None);
+	}
+
+	const int16_t NightLight::getSmoothenedColorTemperature() const
+	{
+		const ULONGLONG duration = getSmootheningDuration();
+		if (duration == 0)
+			return getColorTemperature();
+		const ULONGLONG timeSinceStatusChange = ::GetTickCount64() - _lastStatusChangeTime; // ms
+		if (timeSinceStatusChange >= duration)
+			return getColorTemperature();
+
+		const int16_t from = !isRunning() ? getNightColorTemperature() : getDayColorTemperature();
+		const int16_t to = isRunning() ? getNightColorTemperature() : getDayColorTemperature();
+		return static_cast<int16_t>(from + (to - from) * (timeSinceStatusChange / static_cast<double>(duration)));
+	}
+
+	const bool NightLight::isAdjustingColorTemperature() const noexcept
+	{
+		return _settings.isAdjustingColorTemperature();
+	}
+
+	const bool NightLight::wasAdjustingColorTemperature() const noexcept
+	{
+		return _adjustingColorTemperatureChanged;
+	}
+
+	NightLight& NightLight::save(const bool dontTrigger)
+	{
+		if (dontTrigger)
+			pauseWatching();
 		_settings.save();
 		_state.save(/*isEnabled() && isWithinTimeRange()*/); // TODO: double check logic
+		if (dontTrigger)
+			resumeWatching();
 		return *this;
 	}
 
 	NightLight& NightLight::load(const bool ignoreStatusChange)
 	{
+		_loadSettings(ignoreStatusChange);
+		_loadState(ignoreStatusChange);
+		return *this;
+	}
+
+	NightLight& NightLight::_loadState(const bool ignoreStatusChange)
+	{
 		const bool previousStatus = isRunning();
-		Settings::load(_settings);
-		State::load(_state);
-		if (ignoreStatusChange == false) {
+		if (State::load(_state) && ignoreStatusChange == false) {
 			_statusChanged = (previousStatus != isRunning());
-			if (_statusChanged)
+			if (_statusChanged) {
 				_lastStatusChangeTime = ::GetTickCount64();
+				
+				_adjustingColorTemperatureChanged = false;
+
+				//if (_state.wasManuallyTriggered() == false)
+					//_settingsChanged = false;
+			}
 		}
+		return *this;
+	}
+
+	NightLight& NightLight::_loadSettings(const bool ignoreStatusChange)
+	{
+		const bool previousAdjusting = isAdjustingColorTemperature();
+		Settings previous;
+		previous.swap(_settings);
+		if (Settings::load(_settings) && ignoreStatusChange == false)
+			_settingsChanged = (previous != _settings);
+		_adjustingColorTemperatureChanged = (previousAdjusting != isAdjustingColorTemperature() && _settingsChanged);
 		return *this;
 	}
 
@@ -204,26 +252,35 @@ namespace NightLightLibrary
 
 	NightLight& NightLight::startWatching(const std::function<void(NightLight&)>& callback)
 	{
-		if (_watcher)
-			_watcher->stop();
-		else
-			_watcher = std::make_unique<Registry::Watcher>();
-
-		const std::vector<LPCSTR> subKeys{
-			_state.getRegistryKey(),
-			_settings.getRegistryKey()
-		};
-		const std::function<void()> wrapper = [&, callback]() {
-			load(); // refresh data on change
+		_state.startWatching([&, callback]() {
+			_loadState();
 			callback(*this);
-		};
-		_watcher->start(subKeys, wrapper);
+		});
+		_settings.startWatching([&, callback]() {
+			_loadSettings();
+			callback(*this);
+		});
 		return *this;
 	}
 
 	NightLight& NightLight::stopWatching() noexcept
 	{
-		_watcher.reset();
+		_state.stopWatching();
+		_settings.stopWatching();
+		return *this;
+	}
+
+	NightLight& NightLight::pauseWatching() noexcept
+	{
+		_state.pauseWatching();
+		_settings.pauseWatching();
+		return *this;
+	}
+
+	NightLight& NightLight::resumeWatching() noexcept
+	{
+		_state.resumeWatching();
+		_settings.resumeWatching();
 		return *this;
 	}
 
