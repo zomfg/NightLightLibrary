@@ -10,7 +10,7 @@ namespace NightLightLibrary
 		None = 0 // for while moving ct slider
 	};
 
-	
+
 
 #pragma region NightLight
 
@@ -149,7 +149,7 @@ namespace NightLightLibrary
 	{
 		return _settings.getNightColorTemperature();
 	}
-	
+
 	NightLight& NightLight::setNightColorTemperature(const int16_t ct)
 	{
 		_settings.setNightColorTemperature(ct);
@@ -209,12 +209,13 @@ namespace NightLightLibrary
 
 	NightLight& NightLight::_loadState(const bool ignoreStatusChange)
 	{
+		_statusChanged = false;
 		const bool previousStatus = isRunning();
 		if (State::load(_state) && ignoreStatusChange == false) {
 			_statusChanged = (previousStatus != isRunning());
 			if (_statusChanged) {
 				_lastStatusChangeTime = ::GetTickCount64();
-				
+
 				_adjustingColorTemperatureChanged = false;
 
 				//if (_state.wasManuallyTriggered() == false)
@@ -226,11 +227,16 @@ namespace NightLightLibrary
 
 	NightLight& NightLight::_loadSettings(const bool ignoreStatusChange)
 	{
+		_settingsChanged = false;
 		const bool previousAdjusting = isAdjustingColorTemperature();
 		Settings previous;
 		previous.swap(_settings);
-		if (Settings::load(_settings) && ignoreStatusChange == false)
+		if (Settings::load(_settings) && ignoreStatusChange == false) {
 			_settingsChanged = (previous != _settings);
+
+			if (_settingsChanged)
+				_statusChanged = false;
+		}
 		_adjustingColorTemperatureChanged = (previousAdjusting != isAdjustingColorTemperature() && _settingsChanged);
 		return *this;
 	}
