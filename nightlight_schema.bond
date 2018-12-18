@@ -44,5 +44,5 @@ struct _Settings<T>
 	40: required	int16		colorTemperature			= 6500;
 	50:				T			sunScheduleStartTime;
 	60:				T			sunScheduleEndTime;
-	70:				bool		adjustingColorTemperature	= false;
+	70:				bool		previewing					= false;
 }

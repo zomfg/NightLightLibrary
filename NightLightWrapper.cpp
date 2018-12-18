@@ -34,7 +34,7 @@ namespace NightLightLibrary
 			if (!supported)
 				return false;
 			if (checkEnabled)
-				return (settings.isEnabled() || state.isRunning() || settings.isAdjustingColorTemperature()/*unsure*/);
+				return (settings.isEnabled() || state.isRunning() || settings.isPreviewing()/*unsure*/);
 			return true;
 		}
 
@@ -139,7 +139,7 @@ namespace NightLightLibrary
 
 		const int16_t getColorTemperature() const
 		{
-			return isRunning() || isAdjustingColorTemperature() ? getNightColorTemperature() : getDayColorTemperature();
+			return isRunning() || isPreviewing() ? getNightColorTemperature() : getDayColorTemperature();
 		}
 
 		const int16_t getDayColorTemperature() const noexcept
@@ -181,14 +181,14 @@ namespace NightLightLibrary
 			return static_cast<int16_t>(from + (to - from) * (timeSinceStatusChange / static_cast<double>(duration)));
 		}
 
-		const bool isAdjustingColorTemperature() const noexcept
+		const bool isPreviewing() const noexcept
 		{
-			return _settings.isAdjustingColorTemperature();
+			return _settings.isPreviewing();
 		}
 
-		const bool wasAdjustingColorTemperature() const noexcept
+		const bool wasPreviewing() const noexcept
 		{
-			return _adjustingColorTemperatureChanged;
+			return _previewingChanged;
 		}
 
 		NightLight& save(const bool dontTrigger = true)
@@ -267,7 +267,7 @@ namespace NightLightLibrary
 		bool        _statusChanged{ false };
 		ULONGLONG	_lastStatusChangeTime{ 0 };
 		bool		_settingsChanged{ false };
-		bool		_adjustingColorTemperatureChanged{ false };
+		bool		_previewingChanged{ false };
 
 		NightLight& _loadState(const bool ignoreStatusChange = false)
 		{
@@ -278,7 +278,7 @@ namespace NightLightLibrary
 				if (_statusChanged) {
 					_lastStatusChangeTime = ::GetTickCount64();
 
-					_adjustingColorTemperatureChanged = false;
+					_previewingChanged = false;
 
 					//if (_state.wasManuallyTriggered() == false)
 						//_settingsChanged = false;
@@ -290,7 +290,7 @@ namespace NightLightLibrary
 		NightLight& _loadSettings(const bool ignoreStatusChange = false)
 		{
 			_settingsChanged = false;
-			const bool previousAdjusting = isAdjustingColorTemperature();
+			const bool previouPreviewing = isPreviewing();
 			Settings previous;
 			previous.swap(_settings);
 			if (Settings::load(_settings) && ignoreStatusChange == false) {
@@ -299,7 +299,7 @@ namespace NightLightLibrary
 				if (_settingsChanged)
 					_statusChanged = false;
 			}
-			_adjustingColorTemperatureChanged = (previousAdjusting != isAdjustingColorTemperature() && _settingsChanged);
+			_previewingChanged = (previouPreviewing != isPreviewing() && _settingsChanged);
 			return *this;
 		}
 	}; // class NightLightWrapper::NightLight
@@ -375,8 +375,8 @@ NightLightWrapper& NightLightWrapper::get##_name_##Time(int8_t& hours, int8_t& m
 	NL_NONCHAINABLE_WRAPPER(const int16_t, getColorTemperature, const);
 	NL_NONCHAINABLE_WRAPPER(const int16_t, getDayColorTemperature, const noexcept);
 	NL_NONCHAINABLE_WRAPPER(const int16_t, getNightColorTemperature, const noexcept);
-	NL_NONCHAINABLE_WRAPPER(const bool, isAdjustingColorTemperature, const noexcept);
-	NL_NONCHAINABLE_WRAPPER(const bool, wasAdjustingColorTemperature, const noexcept);
+	NL_NONCHAINABLE_WRAPPER(const bool, isPreviewing, const noexcept);
+	NL_NONCHAINABLE_WRAPPER(const bool, wasPreviewing, const noexcept);
 
 	NL_CHAINABLE_WRAPPER(setNightColorTemperature, const int16_t, ct, );
 

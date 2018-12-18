@@ -40,8 +40,8 @@ namespace NightLightLibrary
 		// attempts to emulate color temperature transition
 		const int16_t getSmoothenedColorTemperature() const;
 
-		const bool isAdjustingColorTemperature() const noexcept;
-		const bool wasAdjustingColorTemperature() const noexcept;
+		const bool isPreviewing() const noexcept;
+		const bool wasPreviewing() const noexcept;
 
 		NightLightWrapper& save(const bool dontTrigger = true);
 		NightLightWrapper& load(const bool ignoreStatusChange = false);
