@@ -2,8 +2,6 @@
 #include <functional>
 namespace NightLightLibrary
 {
-	class NightLight;
-
 	class NightLightWrapper
 	{
 	public:
@@ -55,6 +53,7 @@ namespace NightLightLibrary
 		NightLightWrapper& pauseWatching() noexcept;
 		NightLightWrapper& resumeWatching() noexcept;
 	private:
+		class NightLight;
 		std::unique_ptr<NightLight> _nl;
 	}; // class NightLightWrapper
 } // namespace NightLightLibrary
