@@ -104,7 +104,7 @@ namespace NightLightLibrary
 			if (triggeredEventIdx >= WAIT_OBJECT_0 && triggeredEventIdx < cancelEventIdx) { // one of the regkeys was changed
 				changedKeyIndex = triggeredEventIdx - WAIT_OBJECT_0;
 #ifdef _DEBUG
-				std::cout << "Key changed : [" << changedKeyIndex << "]" << std::endl;
+				std::cout << "Key index changed : [" << changedKeyIndex << "]" << std::endl;
 #endif // _DEBUG
 				// delay events reset and callback() to buffer triggers in quick successions
 				//std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -144,8 +144,12 @@ namespace NightLightLibrary
 
 				while (isWatching()) {
 					const int subkeyIndex = watch(events, keys);
-					if (!isPaused() && subkeyIndex > -1 && subkeyIndex < subKeys.size())
+					if (!isPaused() && subkeyIndex > -1 && subkeyIndex < subKeys.size()) {
+#ifdef _DEBUG
+						std::cout << "Key changed : [" << subKeys[subkeyIndex] << "]" << std::endl;
+#endif // _DEBUG
 						callback(subKeys[subkeyIndex]);
+					}
 				}
 			}
 			catch (const Exception& e)
