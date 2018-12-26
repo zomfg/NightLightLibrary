@@ -12,6 +12,10 @@ namespace NightLightLibrary
 		None = 0 // for while moving ct slider
 	};
 
+	// maximum gap in ms between settings change and state change
+	// during which the status change will be considered as a manual change
+	constexpr ULONGLONG SettingsEnducedStatusChangePeriod = 100; // ms
+
 #pragma region NightLight
 	class NightLightWrapper::NightLight
 	{
@@ -228,6 +232,10 @@ namespace NightLightLibrary
 		{
 			_state.startWatching([&, callback]() {
 				_loadState();
+#ifdef _DEBUG
+				// delay state callback to allow settings callback to print to console without mixing both outputs
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif // _DEBUG
 				callback(*this);
 				});
 			_settings.startWatching([&, callback]() {
@@ -264,10 +272,13 @@ namespace NightLightLibrary
 		Settings	_backupSettings;
 		State		_backupState;
 
-		bool        _statusChanged{ false };
-		ULONGLONG	_lastStatusChangeTime{ 0 };
-		bool		_settingsChanged{ false };
-		bool		_previewingChanged{ false };
+		std::atomic<bool>        _statusChanged{ false };
+		std::atomic<ULONGLONG>	_lastStatusChangeTime{ 0 };
+
+		std::atomic<bool>		_settingsChanged{ false };
+		std::atomic<ULONGLONG>	_lastSettingsChangeTime{ 0 };
+
+		std::atomic<bool>		_previewingChanged{ false };
 
 		NightLight& _loadState(const bool ignoreStatusChange = false)
 		{
@@ -280,8 +291,11 @@ namespace NightLightLibrary
 
 					_previewingChanged = false;
 
-					//if (_state.wasManuallyTriggered() == false)
-						//_settingsChanged = false;
+					// when settings were changed far enough in the past
+					// it means status change was not caused by direct settings change
+					// and settings flag should be reset
+					if (_lastStatusChangeTime > _lastSettingsChangeTime + SettingsEnducedStatusChangePeriod)
+						_settingsChanged = false;
 				}
 			}
 			return *this;
@@ -289,15 +303,18 @@ namespace NightLightLibrary
 
 		NightLight& _loadSettings(const bool ignoreStatusChange = false)
 		{
-			_settingsChanged = false;
 			const bool previouPreviewing = isPreviewing();
 			Settings previous;
 			previous.swap(_settings);
 			if (Settings::load(_settings) && ignoreStatusChange == false) {
-				_settingsChanged = (previous != _settings);
+				ULONGLONG now = ::GetTickCount64();
+				if (now > _lastSettingsChangeTime + SettingsEnducedStatusChangePeriod)
+					_settingsChanged = (previous != _settings);
 
-				if (_settingsChanged)
+				if (_settingsChanged) {
+					_lastSettingsChangeTime = now;
 					_statusChanged = false;
+				}
 			}
 			_previewingChanged = (previouPreviewing != isPreviewing() && _settingsChanged);
 			return *this;
